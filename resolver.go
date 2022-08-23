@@ -12,9 +12,6 @@ const (
 )
 
 var (
-	emptyGenerator = func() string { return "" }
-	emptyModifier  = func(val string) string { return val }
-
 	enumPat  = regexp.MustCompile("enum:.+")
 	limitPat = regexp.MustCompile("limit:\\d+")
 )
@@ -34,6 +31,9 @@ func (t *tagManager) resolveTag(tagString string) *tagGenerator {
 
 		case tag == "fullname":
 			generator.setGenerator(&FullNameGenerator{})
+
+		case tag == "email":
+			generator.setGenerator(&EmailGenerator{})
 
 		case enumPat.MatchString(tag):
 			generator.setGenerator(&EnumGenerator{tag})
