@@ -4,21 +4,25 @@ import (
 	"fmt"
 )
 
-type Generator interface {
-	Generate() string
+type Producer interface {
+	Produce() string
 }
 
 type Modifier interface {
 	Modify(string) string
 }
 
-type tagGenerator struct {
-	generator Generator
+type Generator struct {
+	producer  Producer
 	modifiers []Modifier
 }
 
-func (r *tagGenerator) do() string {
-	source := r.generator.Generate()
+func NewEmptyGenerator() Generator {
+	return Generator{}
+}
+
+func (r *Generator) do() string {
+	source := r.producer.Produce()
 
 	for idx := range r.modifiers {
 		source = r.modifiers[idx].Modify(source)
@@ -27,14 +31,14 @@ func (r *tagGenerator) do() string {
 	return source
 }
 
-func (r *tagGenerator) setGenerator(generator Generator) {
-	if r.generator != nil {
+func (r *Generator) setProducer(producer Producer) {
+	if r.producer != nil {
 		fmt.Println("generator is already set, ignoring succeeding generators")
 	} else {
-		r.generator = generator
+		r.producer = producer
 	}
 }
 
-func (r *tagGenerator) addModifier(modifier Modifier) {
+func (r *Generator) addModifier(modifier Modifier) {
 	r.modifiers = append(r.modifiers, modifier)
 }

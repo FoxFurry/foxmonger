@@ -12,37 +12,43 @@ const (
 )
 
 var (
-	enumPat  = regexp.MustCompile("enum:.+")
-	limitPat = regexp.MustCompile("limit:\\d+")
+	enumPat    = regexp.MustCompile("enum:.+")
+	limitPat   = regexp.MustCompile("limit:\\d+")
+	foreignPat = regexp.MustCompile("foreign:.+")
 )
 
-type tagManager struct {
-}
+type tagManager struct{}
 
-func (t *tagManager) resolveTag(tagString string) (*tagGenerator, error) {
-	generator := tagGenerator{}
+func (t *tagManager) resolveTag(tagString string) (*Generator, error) {
+	generator := NewEmptyGenerator()
 
 	tags := strings.Split(tagString, tagSplitter)
 
 	for _, tag := range tags {
 		switch {
+
+		// Exact tags
 		case tag == "auto": // Auto is used to keep history of autoincrement rows
 			return nil, nil
 
 		case tag == "fullname":
-			generator.setGenerator(NewFullNameGenerator())
+			generator.setProducer(NewFullNameProducer())
 
 		case tag == "email":
-			generator.setGenerator(NewEmailGenerator())
+			generator.setProducer(NewEmailProducer())
 
+		// Pattern tags
 		case enumPat.MatchString(tag):
-			generator.setGenerator(NewEnumGenerator(tag))
+			generator.setProducer(NewEnumProducer(tag))
 
 		case limitPat.MatchString(tag):
 			generator.addModifier(NewLimitModifier(tag))
 
+		case foreignPat.MatchString(tag):
+			return nil, fmt.Errorf("foreign key tag is not yet supported")
+
 		default:
-			return nil, fmt.Errorf("unsupported tag: %s", tag)
+			return nil, fmt.Errorf("unknown tag: %s", tag)
 		}
 	}
 
