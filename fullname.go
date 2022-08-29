@@ -4,16 +4,16 @@ import (
 	"github.com/jaswdr/faker"
 )
 
-type FullNameGenerator struct {
+type FullNameProducer struct {
 	fakerInstance faker.Faker
 }
 
-func (gen *FullNameGenerator) Generate() string {
+func (gen *FullNameProducer) Produce() string {
 	return gen.fakerInstance.Person().Name()
 }
 
-func NewFullNameGenerator() Generator {
-	return &FullNameGenerator{
+func NewFullNameProducer() Producer {
+	return &FullNameProducer{
 		fakerInstance: faker.New(),
 	}
 }

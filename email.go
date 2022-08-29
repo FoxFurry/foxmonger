@@ -4,16 +4,16 @@ import (
 	"github.com/jaswdr/faker"
 )
 
-type EmailGenerator struct {
+type EmailProducer struct {
 	fakerInstance faker.Faker
 }
 
-func (gen *EmailGenerator) Generate() string {
+func (gen *EmailProducer) Produce() string {
 	return gen.fakerInstance.Internet().Email()
 }
 
-func NewEmailGenerator() Generator {
-	return &EmailGenerator{
+func NewEmailProducer() Producer {
+	return &EmailProducer{
 		fakerInstance: faker.New(),
 	}
 }

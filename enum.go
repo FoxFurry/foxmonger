@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-type EnumGenerator struct {
+type EnumProducer struct {
 	enumTag string
 }
 
-func (gen *EnumGenerator) Generate() string {
+func (gen *EnumProducer) Produce() string {
 	enumElements := strings.Split(gen.enumTag, modifierSplitter)
 
 	if len(enumElements) != 2 { // Valid enum should contain 2 elements: enum keyword and enum values
@@ -23,8 +23,8 @@ func (gen *EnumGenerator) Generate() string {
 	return enumValues[rand.Intn(len(enumValues))]
 }
 
-func NewEnumGenerator(tag string) Generator {
-	return &EnumGenerator{
+func NewEnumProducer(tag string) Producer {
+	return &EnumProducer{
 		enumTag: tag,
 	}
 }
