@@ -19,33 +19,32 @@ var (
 type tagManager struct {
 }
 
-func (t *tagManager) resolveTag(tagString string) *tagGenerator {
+func (t *tagManager) resolveTag(tagString string) (*tagGenerator, error) {
 	generator := tagGenerator{}
 
 	tags := strings.Split(tagString, tagSplitter)
 
 	for _, tag := range tags {
 		switch {
-		case tag == "auto":
-			return nil
+		case tag == "auto": // Auto is used to keep history of autoincrement rows
+			return nil, nil
 
 		case tag == "fullname":
-			generator.setGenerator(&FullNameGenerator{})
+			generator.setGenerator(NewFullNameGenerator())
 
 		case tag == "email":
-			generator.setGenerator(&EmailGenerator{})
+			generator.setGenerator(NewEmailGenerator())
 
 		case enumPat.MatchString(tag):
-			generator.setGenerator(&EnumGenerator{tag})
+			generator.setGenerator(NewEnumGenerator(tag))
 
 		case limitPat.MatchString(tag):
-			generator.addModifier(&LimitModifier{tag})
+			generator.addModifier(NewLimitModifier(tag))
 
 		default:
-			fmt.Printf("unsupported tag: %s\n", tag)
-			return nil
+			return nil, fmt.Errorf("unsupported tag: %s", tag)
 		}
 	}
 
-	return &generator
+	return &generator, nil
 }
