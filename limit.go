@@ -29,3 +29,9 @@ func (mod *LimitModifier) Modify(val string) string {
 	}
 	return val
 }
+
+func NewLimitModifier(tag string) Modifier {
+	return &LimitModifier{
+		limitTag: tag,
+	}
+}
