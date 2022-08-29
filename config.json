@@ -1,0 +1,23 @@
+{
+  "base_count": 10,
+  "db_type": "mysql",
+  "db_name": "test",
+  "db_host": "test",
+  "db_user": "test",
+  "db_pass": "test",
+  "db_port": 3306,
+  "tables": [
+    {
+      "name": "developers",
+      "base_multiplier": 5,
+      "data": {
+        "id": "auto",
+        "name": "fullname;limit:255",
+        "type": "enum:enum1,enum2,enum3",
+        "bruh": "enum:bruh,brah,breh",
+        "contact_data": "email",
+        "name_limited": "fullname;limit:10"
+      }
+    }
+  ]
+}
