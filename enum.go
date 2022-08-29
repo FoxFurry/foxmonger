@@ -22,3 +22,9 @@ func (gen *EnumGenerator) Generate() string {
 
 	return enumValues[rand.Intn(len(enumValues))]
 }
+
+func NewEnumGenerator(tag string) Generator {
+	return &EnumGenerator{
+		enumTag: tag,
+	}
+}
