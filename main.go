@@ -22,7 +22,7 @@ type table struct {
 
 type queryParams struct {
 	RowName      string
-	RowGenerator *tagGenerator
+	RowGenerator *Generator
 }
 
 type mongerConfig struct {
