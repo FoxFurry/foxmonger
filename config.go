@@ -1,15 +1,10 @@
-// Package config
-package config
-
-var (
-// ErrTableNotFound = fmt.Errorf("table not found")
-
-)
+package foxmonger
 
 type Table struct {
 	Name           string            `mapstructure:"name"`
 	BaseMultiplier int               `mapstructure:"base_multiplier"`
 	Data           map[string]string `mapstructure:"data"`
+	IsForeign      bool              `mapstructure:"-"` // Generated
 }
 
 type Config struct {
@@ -37,5 +32,3 @@ func (c *Config) GetTableByName(targetName string) *Table {
 func (t *Table) GetRowByName(targetName string) string {
 	return t.Data[targetName]
 }
-
-
