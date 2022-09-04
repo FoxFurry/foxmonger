@@ -4,10 +4,18 @@ import (
 	"math/rand"
 )
 
-type ForeignGenerator struct {
+type ForeignProducer struct {
 	foreignKeys []string
 }
 
-func (gen *ForeignGenerator) Produce() string {
+func (gen *ForeignProducer) Produce() string {
 	return gen.foreignKeys[rand.Intn(len(gen.foreignKeys))]
+}
+
+func (gen *ForeignProducer) Initialize(string) error { return nil }
+
+func NewForeignProducer(keys []string) Producer {
+	return &ForeignProducer{
+		foreignKeys: keys,
+	}
 }
