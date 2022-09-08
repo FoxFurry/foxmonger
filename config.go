@@ -1,10 +1,14 @@
 package foxmonger
 
+const (
+	MySQLType  = "mysql"
+	PostgreSQL = "postgresql"
+)
+
 type Table struct {
-	Name           string              `mapstructure:"name"`
-	BaseMultiplier int                 `mapstructure:"base_multiplier"`
-	Data           map[string]string   `mapstructure:"data"`
-	ForeignKeys    map[string]struct{} `mapstructure:"-"` // Generated
+	Name           string            `mapstructure:"name"`
+	BaseMultiplier int               `mapstructure:"base_multiplier"`
+	Data           map[string]string `mapstructure:"data"`
 }
 
 type Config struct {
@@ -31,8 +35,4 @@ func (c *Config) GetTableByName(targetName string) *Table {
 
 func (t *Table) GetRowByName(targetName string) string {
 	return t.Data[targetName]
-}
-
-func (t *Table) AddForeignKey(foreignKeyName string) {
-	t.ForeignKeys[foreignKeyName] = struct{}{}
 }
