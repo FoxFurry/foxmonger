@@ -36,34 +36,38 @@ func (m *monger) PopulateDatabase() error {
 		fmt.Printf("Working on table: %s\n", table.Name)
 
 		for row, tagString := range table.Data {
-			generator, err := m.tagsToGenerator(tagString)
+			generator, err := m.tagsToGenerator(tagString, row)
 			if err != nil {
-				return fmt.Errorf("failed to create row %s generator: %w", row, err)
+				return fmt.Errorf("failed to create row \"%s\" generator: %w", row, err)
 			}
 
 			generators = append(generators, *generator)
+		}
+
+		queryTemplate := fmt.Sprintf("INSERT INTO %s (%s) VALUES", table.Name, paramsToRowsString(generators))
+
+		for idx := 0; idx < table.BaseMultiplier; idx++ {
+			fmt.Printf("%s ( %s )\n", queryTemplate, paramsToValueString(generators))
 		}
 	}
 
 	return nil
 }
 
-func (m *monger) tagsToGenerator(tagsString string) (*tag.Generator, error) {
+func (m *monger) tagsToGenerator(tagsString, rowName string) (*tag.Generator, error) {
 	tagsValues, err := util.SplitTags(tagsString)
 	if err != nil {
 		return nil, fmt.Errorf("could not split tags: %w", err)
 	}
 
-	tagGenerator := tag.Generator{}
+	tagGenerator := tag.Generator{
+		RowName: rowName,
+	}
 
 	for _, tagValue := range tagsValues {
 		resolvedTag, err := m.resolveTag(tagValue)
 		if err != nil {
 			return nil, err
-		}
-
-		if resolvedTag == nil && len(tagsValues) != 1 {
-			return nil, fmt.Errorf("auto tag cannot have any additional tags")
 		}
 
 		if producerTag, ok := resolvedTag.(tag.Producer); ok {
@@ -82,9 +86,6 @@ func (m *monger) tagsToGenerator(tagsString string) (*tag.Generator, error) {
 func (m *monger) resolveTag(tagValue string) (any, error) {
 	switch {
 	// Exact tags
-	case tagValue == "auto": // Auto is used to keep history of autoincrement rows
-		return nil, nil
-
 	case tagValue == "fullname":
 		return tag.NewFullNameProducer(), nil
 
@@ -156,42 +157,29 @@ func (m *monger) openConnection() (*sql.DB, error) {
 	}
 }
 
-//func generateQuery(tableName string, tableParams []rowParameter) (string, error) {
-//	if tableParams == nil {
-//		return "", fmt.Errorf("bruh")
-//	}
-//
-//	output := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-//		tableName,
-//		paramsToRowsString(tableParams),
-//		paramsToValueString(tableParams))
-//
-//	return output, nil
-//}
-//
-//func paramsToRowsString(tableParams []rowParameter) string {
-//	if tableParams == nil {
-//		return ""
-//	}
-//
-//	rowsString := tableParams[0].RowName
-//
-//	for idx := 1; idx < len(tableParams); idx++ {
-//		rowsString += fmt.Sprintf(", %s", tableParams[idx].RowName)
-//	}
-//
-//	return rowsString
-//}
-//
-//func paramsToValueString(tableParams []rowParameter) string {
-//	if tableParams == nil {
-//		return ""
-//	}
-//
-//	rowsString := tableParams[0].RowGenerator.do()
-//
-//	for idx := 1; idx < len(tableParams); idx++ {
-//		rowsString += fmt.Sprintf(", %s", tableParams[idx].RowGenerator.do())
-//	}
-//	return rowsString
-//}
+func paramsToRowsString(tableParams []tag.Generator) string {
+	if tableParams == nil {
+		return ""
+	}
+
+	rowsString := tableParams[0].RowName
+
+	for idx := 1; idx < len(tableParams); idx++ {
+		rowsString += fmt.Sprintf(", %s", tableParams[idx].RowName)
+	}
+
+	return rowsString
+}
+
+func paramsToValueString(tableParams []tag.Generator) string {
+	if tableParams == nil {
+		return ""
+	}
+
+	rowsString := tableParams[0].Do()
+
+	for idx := 1; idx < len(tableParams); idx++ {
+		rowsString += fmt.Sprintf(", %s", tableParams[idx].Do())
+	}
+	return rowsString
+}
