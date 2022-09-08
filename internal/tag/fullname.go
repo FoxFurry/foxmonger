@@ -5,7 +5,7 @@ import (
 )
 
 type FullNameProducer struct {
-	fakerInstance faker.Faker
+	fakerInstance *faker.Faker
 }
 
 func (gen *FullNameProducer) Produce() string {
@@ -15,8 +15,8 @@ func (gen *FullNameProducer) Produce() string {
 // Initialize implements Producer interface
 func (gen *FullNameProducer) Initialize(string) error { return nil }
 
-func NewFullNameProducer() Producer {
+func NewFullNameProducer(f *faker.Faker) Producer {
 	return &FullNameProducer{
-		fakerInstance: faker.New(),
+		fakerInstance: f,
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/FoxFurry/foxmonger/internal/tag"
 	"github.com/FoxFurry/foxmonger/internal/util"
+	"github.com/jaswdr/faker"
 )
 
 var (
@@ -20,12 +21,14 @@ type FoxMonger interface {
 }
 
 type monger struct {
-	conf Config
+	fakerInstance faker.Faker
+	conf          Config
 }
 
 func NewMonger(conf Config) FoxMonger {
 	return &monger{
-		conf: conf,
+		fakerInstance: faker.New(),
+		conf:          conf,
 	}
 }
 
@@ -87,10 +90,10 @@ func (m *monger) resolveTag(tagValue string) (any, error) {
 	switch {
 	// Exact tags
 	case tagValue == "fullname":
-		return tag.NewFullNameProducer(), nil
+		return tag.NewFullNameProducer(&m.fakerInstance), nil
 
 	case tagValue == "email":
-		return tag.NewEmailProducer(), nil
+		return tag.NewEmailProducer(&m.fakerInstance), nil
 
 	// Pattern tags
 	case enumPat.MatchString(tagValue):
