@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/FoxFurry/foxmonger"
 	"github.com/spf13/viper"
 )
 
@@ -30,14 +31,25 @@ func main() {
 
 	viper.SetConfigFile(*config)
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read config: %w\n", err)
+		fmt.Fprintf(os.Stderr, "failed to read config: %v\n", err)
+		os.Exit(1)
 	}
 
-	//test := foxmonger.FoxMonger{}
+	conf := foxmonger.Config{}
 
 	if err := viper.Unmarshal(&conf); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to unmarshal config: %w\n", err)
+		fmt.Fprintf(os.Stderr, "failed to unmarshal config: %v\n", err)
+		os.Exit(1)
 	}
+
+	monger := foxmonger.NewMonger(conf)
+
+	if err := monger.PopulateDatabase(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to populate db: %v", err)
+		os.Exit(1)
+	}
+
+	return
 }
 
 func usage() {
