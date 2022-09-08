@@ -22,17 +22,3 @@ type Config struct {
 	DBPort      string  `mapstructure:"db_port"`
 	Tables      []Table `mapstructure:"tables"`
 }
-
-func (c *Config) GetTableByName(targetName string) *Table {
-	for idx := range c.Tables {
-		if c.Tables[idx].Name == targetName {
-			return &c.Tables[idx]
-		}
-	}
-
-	return nil
-}
-
-func (t *Table) GetRowByName(targetName string) string {
-	return t.Data[targetName]
-}
