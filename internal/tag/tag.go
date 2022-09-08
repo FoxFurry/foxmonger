@@ -28,6 +28,7 @@ type Modifier interface {
 type Generator struct {
 	producer  Producer
 	modifiers []Modifier
+	RowName   string
 }
 
 func (t *Generator) Do() string {
