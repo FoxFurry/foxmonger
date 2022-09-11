@@ -1,15 +1,15 @@
 {
-  "base_count": 10,
+  "base_count": 1,
   "db_type": "mysql",
-  "db_name": "test",
-  "db_host": "test",
-  "db_user": "test",
-  "db_pass": "test",
-  "db_port": 3306,
+  "db_name": "monger",
+  "db_host": "kubernetes.docker.internal",
+  "db_user": "root",
+  "db_pass": "sekret",
+  "db_port": 3309,
   "tables": [
     {
       "name": "developers",
-      "base_multiplier": 1000,
+      "base_multiplier": 100000,
       "data": {
         "name": "fullname;limit:255",
         "type": "enum:type_A,type_B,type_C",

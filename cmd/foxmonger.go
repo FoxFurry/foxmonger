@@ -25,7 +25,7 @@ func main() {
 	}
 
 	if *config == "" {
-		fmt.Fprintln(os.Stderr, "config is mandatory for execution")
+		fmt.Fprintf(os.Stderr, "config is mandatory for execution\n")
 		os.Exit(1)
 	}
 
@@ -45,7 +45,7 @@ func main() {
 	monger := foxmonger.NewMonger(conf)
 
 	if err := monger.PopulateDatabase(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to populate db: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to populate db: %v\n", err)
 		os.Exit(1)
 	}
 

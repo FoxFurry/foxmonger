@@ -3,7 +3,10 @@ package foxmonger
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"regexp"
+
+	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/FoxFurry/foxmonger/internal/tag"
 	"github.com/FoxFurry/foxmonger/internal/util"
@@ -21,14 +24,21 @@ type FoxMonger interface {
 }
 
 type monger struct {
+	db            *sql.DB
 	fakerInstance faker.Faker
 	conf          Config
 }
 
 func NewMonger(conf Config) FoxMonger {
+	database, err := openConnection(conf)
+	if err != nil {
+		log.Fatalf("failed initialize: %v", err)
+	}
+
 	return &monger{
 		fakerInstance: faker.New(),
 		conf:          conf,
+		db:            database,
 	}
 }
 
@@ -49,8 +59,14 @@ func (m *monger) PopulateDatabase() error {
 
 		queryTemplate := fmt.Sprintf("INSERT INTO %s (%s) VALUES", table.Name, paramsToRowsString(generators))
 
-		for idx := 0; idx < table.BaseMultiplier; idx++ {
-			fmt.Printf("%s ( %s )\n", queryTemplate, paramsToValueString(generators))
+		var transaction string
+		for idx := 0; idx < table.BaseMultiplier*m.conf.BaseCount; idx++ {
+			transaction += fmt.Sprintf("%s ( %s );\n", queryTemplate, paramsToValueString(generators))
+		}
+
+		fmt.Println("Transaction generated, applying")
+		if err := m.executeQuery(transaction); err != nil {
+			return err
 		}
 	}
 
@@ -122,12 +138,7 @@ func (m *monger) resolveTag(tagValue string) (any, error) {
 func (m *monger) getRows(tableName, rowName string) ([]string, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s", rowName, tableName)
 
-	db, err := m.openConnection()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := db.Query(query)
+	rows, err := m.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -149,15 +160,13 @@ func (m *monger) getRows(tableName, rowName string) ([]string, error) {
 	return rowsResult, nil
 }
 
-func (m *monger) openConnection() (*sql.DB, error) {
-	switch m.conf.DBType {
-	case MySQLType:
-		return sql.Open(MySQLType, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", m.conf.DBUser, m.conf.DBPass, m.conf.DBHost, m.conf.DBPort, m.conf.DBName))
-	case PostgreSQL:
-		return nil, fmt.Errorf("%s is not supported yet", m.conf.DBType)
-	default:
-		return nil, fmt.Errorf("unknown db type: %s", m.conf.DBType)
+func (m *monger) executeQuery(query string) error {
+	_, err := m.db.Exec(query)
+	if err != nil {
+		return err
 	}
+
+	return nil
 }
 
 func paramsToRowsString(tableParams []tag.Generator) string {
@@ -179,10 +188,21 @@ func paramsToValueString(tableParams []tag.Generator) string {
 		return ""
 	}
 
-	rowsString := tableParams[0].Do()
+	rowsString := fmt.Sprintf("'%s'", tableParams[0].Do())
 
 	for idx := 1; idx < len(tableParams); idx++ {
-		rowsString += fmt.Sprintf(", %s", tableParams[idx].Do())
+		rowsString += fmt.Sprintf(", '%s'", tableParams[idx].Do())
 	}
 	return rowsString
+}
+
+func openConnection(conf Config) (*sql.DB, error) {
+	switch conf.DBType {
+	case MySQLType:
+		return sql.Open(MySQLType, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", conf.DBUser, conf.DBPass, conf.DBHost, conf.DBPort, conf.DBName))
+	case PostgreSQL:
+		return nil, fmt.Errorf("%s is not supported yet", conf.DBType)
+	default:
+		return nil, fmt.Errorf("unknown db type: %s", conf.DBType)
+	}
 }
