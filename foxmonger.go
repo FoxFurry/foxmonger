@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"regexp"
 	"strings"
 
@@ -27,17 +26,13 @@ type foreignKey struct {
 }
 
 type FoxMonger struct {
-	db            *sql.DB
+	db   *sql.DB
+	conf *Config
+
 	fakerInstance faker.Faker
-	conf          Config
 }
 
-func NewMonger(conf Config) *FoxMonger {
-	database, err := openConnection(conf)
-	if err != nil {
-		log.Fatalf("failed initialize: %v", err)
-	}
-
+func NewMonger(conf *Config, database *sql.DB) *FoxMonger {
 	return &FoxMonger{
 		fakerInstance: faker.New(),
 		conf:          conf,
@@ -223,17 +218,6 @@ func paramsToValueString(tableParams []tag.Generator) string {
 	}
 
 	return strings.Join(rowValues, ",")
-}
-
-func openConnection(conf Config) (*sql.DB, error) {
-	switch conf.DBType {
-	case MySQLType:
-		return sql.Open(MySQLType, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", conf.DBUser, conf.DBPass, conf.DBHost, conf.DBPort, conf.DBName))
-	case PostgreSQL:
-		return nil, fmt.Errorf("%s is not supported yet", conf.DBType)
-	default:
-		return nil, fmt.Errorf("unknown db type: %s", conf.DBType)
-	}
 }
 
 func resolveForeignKey(foreignTag string) (*foreignKey, error) {

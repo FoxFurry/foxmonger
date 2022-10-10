@@ -1,10 +1,5 @@
 package foxmonger
 
-const (
-	MySQLType  = "mysql"
-	PostgreSQL = "postgresql"
-)
-
 type Table struct {
 	Name           string            `mapstructure:"name"`
 	BaseMultiplier int               `mapstructure:"base_multiplier"`

@@ -1,12 +1,18 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"os"
 
 	"github.com/FoxFurry/foxmonger"
 	"github.com/spf13/viper"
+)
+
+const (
+	mysqlType      = "mysql"
+	postgresqlType = "postgresql"
 )
 
 var (
@@ -25,28 +31,29 @@ func main() {
 	}
 
 	if *config == "" {
-		fmt.Fprintf(os.Stderr, "config is mandatory for execution\n")
-		os.Exit(1)
+		osError("config is mandatory for execution\n")
 	}
 
 	viper.SetConfigFile(*config)
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read config: %v\n", err)
-		os.Exit(1)
+		osError("failed to read config: %v\n", err)
 	}
 
-	conf := foxmonger.Config{}
+	conf := new(foxmonger.Config)
 
-	if err := viper.Unmarshal(&conf); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to unmarshal config: %v\n", err)
-		os.Exit(1)
+	if err := viper.Unmarshal(conf); err != nil {
+		osError("failed to unmarshal config: %v\n", err)
 	}
 
-	monger := foxmonger.NewMonger(conf)
+	db, err := openConnection(conf)
+	if err != nil {
+		osError("failed to open db connection: %v\n", err)
+	}
+
+	monger := foxmonger.NewMonger(conf, db)
 
 	if err := monger.PopulateDatabase(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to populate db: %v\n", err)
-		os.Exit(1)
+		osError("failed to populate db: %v\n", err)
 	}
 
 	return
@@ -62,4 +69,20 @@ func usage() {
 	)
 
 	flags.PrintDefaults()
+}
+
+func osError(format string, opts ...any) {
+	fmt.Fprintf(os.Stderr, format, opts...)
+	os.Exit(1)
+}
+
+func openConnection(conf *foxmonger.Config) (*sql.DB, error) {
+	switch conf.DBType {
+	case mysqlType:
+		return sql.Open(mysqlType, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", conf.DBUser, conf.DBPass, conf.DBHost, conf.DBPort, conf.DBName))
+	case postgresqlType:
+		return nil, fmt.Errorf("%s is not supported yet", conf.DBType)
+	default:
+		return nil, fmt.Errorf("unknown db type: %s", conf.DBType)
+	}
 }
