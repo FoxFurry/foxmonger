@@ -9,7 +9,9 @@
   "tables": [
     {
       "name": "developers",
-      "base_multiplier": 100000,
+      "base_multiplier": 10000,
+      "export_queries": false,
+      "export_path": "exports.sql",
       "data": {
         "name": "fullname;limit:255",
         "type": "enum:type_A,type_B,type_C",

@@ -3,13 +3,13 @@ package foxmonger
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"regexp"
-
-	_ "github.com/go-sql-driver/mysql"
+	"strings"
 
 	"github.com/FoxFurry/foxmonger/internal/tag"
-	"github.com/FoxFurry/foxmonger/internal/util"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jaswdr/faker"
 )
 
@@ -17,71 +17,105 @@ var (
 	enumPat    = regexp.MustCompile("enum:.+")
 	limitPat   = regexp.MustCompile("limit:\\d+")
 	foreignPat = regexp.MustCompile("foreign:.+")
+
+	TagSplitter = ";"
 )
 
-type FoxMonger interface {
-	PopulateDatabase() error
+type foreignKey struct {
+	TargetTable,
+	TargetRow string
 }
 
-type monger struct {
+type FoxMonger struct {
 	db            *sql.DB
 	fakerInstance faker.Faker
 	conf          Config
 }
 
-func NewMonger(conf Config) FoxMonger {
+func NewMonger(conf Config) *FoxMonger {
 	database, err := openConnection(conf)
 	if err != nil {
 		log.Fatalf("failed initialize: %v", err)
 	}
 
-	return &monger{
+	return &FoxMonger{
 		fakerInstance: faker.New(),
 		conf:          conf,
 		db:            database,
 	}
 }
 
-func (m *monger) PopulateDatabase() error {
-	var generators []tag.Generator
+func (m *FoxMonger) PopulateDatabase() error {
+	var (
+		generators      []tag.Generator
+		generatorBuffer *tag.Generator
+		queryTemplate   string
+		err             error
+	)
 
-	for _, table := range m.conf.Tables {
+	for i := range m.conf.Tables {
+		table := &m.conf.Tables[i]
+
 		fmt.Printf("Working on table: %s\n", table.Name)
 
 		for row, tagString := range table.Data {
-			generator, err := m.tagsToGenerator(tagString, row)
+			generatorBuffer, err = m.tagsToGenerator(tagString, row)
 			if err != nil {
 				return fmt.Errorf("failed to create row \"%s\" generator: %w", row, err)
 			}
 
-			generators = append(generators, *generator)
+			generators = append(generators, *generatorBuffer)
 		}
 
-		queryTemplate := fmt.Sprintf("INSERT INTO %s (%s) VALUES", table.Name, paramsToRowsString(generators))
+		fmt.Println("Generators created")
 
-		var transaction string
+		queryTemplate = generateQueryTemplate(table.Name, generators)
+
+		tx, err := m.db.Begin()
+		if err != nil {
+			return err
+		}
+
+		var (
+			queryBuffer    string
+			queryExporting string
+		)
+
 		for idx := 0; idx < table.BaseMultiplier*m.conf.BaseCount; idx++ {
-			transaction += fmt.Sprintf("%s ( %s );\n", queryTemplate, paramsToValueString(generators))
+			queryBuffer = fmt.Sprintf("%s (%s)", queryTemplate, paramsToValueString(generators))
+
+			if _, err := tx.Exec(queryBuffer); err != nil {
+				return err
+			}
+
+			if table.ExportQueries {
+				queryExporting += queryBuffer + ";\n"
+			}
 		}
 
 		fmt.Println("Transaction generated, applying")
-		if err := m.executeQuery(transaction); err != nil {
+
+		if err := tx.Commit(); err != nil {
 			return err
+		}
+
+		if table.ExportQueries {
+			if err := ioutil.WriteFile(table.ExportPath, []byte(queryExporting), 0644); err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	return nil
 }
 
-func (m *monger) tagsToGenerator(tagsString, rowName string) (*tag.Generator, error) {
-	tagsValues, err := util.SplitTags(tagsString)
-	if err != nil {
-		return nil, fmt.Errorf("could not split tags: %w", err)
-	}
-
-	tagGenerator := tag.Generator{
-		RowName: rowName,
-	}
+func (m *FoxMonger) tagsToGenerator(tagsString, rowName string) (*tag.Generator, error) {
+	var (
+		tagsValues   = strings.Split(tagsString, TagSplitter)
+		tagGenerator = tag.Generator{
+			RowName: rowName,
+		}
+	)
 
 	for _, tagValue := range tagsValues {
 		resolvedTag, err := m.resolveTag(tagValue)
@@ -102,7 +136,7 @@ func (m *monger) tagsToGenerator(tagsString, rowName string) (*tag.Generator, er
 	return &tagGenerator, nil
 }
 
-func (m *monger) resolveTag(tagValue string) (any, error) {
+func (m *FoxMonger) resolveTag(tagValue string) (any, error) {
 	switch {
 	// Exact tags
 	case tagValue == "fullname":
@@ -119,7 +153,7 @@ func (m *monger) resolveTag(tagValue string) (any, error) {
 		return tag.NewLimitModifier(tagValue)
 
 	case foreignPat.MatchString(tagValue):
-		foreignTarget, err := util.ResolveForeignKey(tagValue)
+		foreignTarget, err := resolveForeignKey(tagValue)
 		if err != nil {
 			return nil, fmt.Errorf("could not create foreign key producer: %w", err)
 		}
@@ -130,12 +164,13 @@ func (m *monger) resolveTag(tagValue string) (any, error) {
 		}
 
 		return tag.NewForeignProducer(foreignRows), nil
+
 	default:
 		return nil, fmt.Errorf("unknown tag: %s", tagValue)
 	}
 }
 
-func (m *monger) getRows(tableName, rowName string) ([]string, error) {
+func (m *FoxMonger) getRows(tableName, rowName string) ([]string, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s", rowName, tableName)
 
 	rows, err := m.db.Query(query)
@@ -160,40 +195,34 @@ func (m *monger) getRows(tableName, rowName string) ([]string, error) {
 	return rowsResult, nil
 }
 
-func (m *monger) executeQuery(query string) error {
-	_, err := m.db.Exec(query)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func paramsToRowsString(tableParams []tag.Generator) string {
+func generateQueryTemplate(dbName string, tableParams []tag.Generator) string {
 	if tableParams == nil {
 		return ""
 	}
 
-	rowsString := tableParams[0].RowName
+	var rows []string
 
-	for idx := 1; idx < len(tableParams); idx++ {
-		rowsString += fmt.Sprintf(", %s", tableParams[idx].RowName)
+	for idx := 0; idx < len(tableParams); idx++ {
+		rows = append(rows, tableParams[idx].RowName)
 	}
 
-	return rowsString
+	template := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES",
+		dbName,
+		strings.Join(rows, ","),
+	)
+
+	return template
 }
 
 func paramsToValueString(tableParams []tag.Generator) string {
-	if tableParams == nil {
-		return ""
+	var rowValues []string
+
+	for idx := range tableParams {
+		rowValues = append(rowValues, "'"+tableParams[idx].Do()+"'")
 	}
 
-	rowsString := fmt.Sprintf("'%s'", tableParams[0].Do())
-
-	for idx := 1; idx < len(tableParams); idx++ {
-		rowsString += fmt.Sprintf(", '%s'", tableParams[idx].Do())
-	}
-	return rowsString
+	return strings.Join(rowValues, ",")
 }
 
 func openConnection(conf Config) (*sql.DB, error) {
@@ -205,4 +234,24 @@ func openConnection(conf Config) (*sql.DB, error) {
 	default:
 		return nil, fmt.Errorf("unknown db type: %s", conf.DBType)
 	}
+}
+
+func resolveForeignKey(foreignTag string) (*foreignKey, error) {
+	foreignElements := strings.Split(foreignTag, TagSplitter)
+
+	if len(foreignElements) != 2 {
+		return nil, fmt.Errorf("tag does not contain foreign key description: %s", foreignTag)
+	}
+
+	var tableName, rowName string
+
+	_, err := fmt.Sscanf(foreignElements[1], "%s(%s)", &tableName, &rowName)
+	if err != nil {
+		return nil, fmt.Errorf("failed parsing foreign key: %w", err)
+	}
+
+	return &foreignKey{
+		TargetTable: tableName,
+		TargetRow:   rowName,
+	}, nil
 }

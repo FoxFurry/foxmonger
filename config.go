@@ -9,6 +9,8 @@ type Table struct {
 	Name           string            `mapstructure:"name"`
 	BaseMultiplier int               `mapstructure:"base_multiplier"`
 	Data           map[string]string `mapstructure:"data"`
+	ExportQueries  bool              `mapstructure:"export_queries"`
+	ExportPath     string            `mapstructure:"export_path"`
 }
 
 type Config struct {
