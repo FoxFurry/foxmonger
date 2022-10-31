@@ -4,14 +4,15 @@
   "db_name": "monger",
   "db_host": "kubernetes.docker.internal",
   "db_user": "root",
-  "db_pass": "sekret",
-  "db_port": 3309,
+  "db_pass": "temp",
+  "db_port": 3306,
   "tables": [
     {
       "name": "developers",
-      "base_multiplier": 10000,
-      "export_queries": false,
+      "base_multiplier": 100000,
+      "export_queries": true,
       "export_path": "exports.sql",
+      "dummy": false,
       "data": {
         "name": "fullname;limit:255",
         "type": "enum:type_A,type_B,type_C",
