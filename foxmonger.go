@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"regexp"
 	"strings"
 
@@ -66,36 +67,37 @@ func (m *FoxMonger) PopulateDatabase() error {
 
 		queryTemplate = generateQueryTemplate(table.Name, generators)
 
-		tx, err := m.db.Begin()
-		if err != nil {
-			return err
-		}
-
 		var (
-			queryBuffer    string
-			queryExporting string
+			queryBuilder strings.Builder
+			bufferSize   = 1000
+			numOfQueries = table.BaseMultiplier * m.conf.BaseCount
 		)
 
-		for idx := 0; idx < table.BaseMultiplier*m.conf.BaseCount; idx++ {
-			queryBuffer = fmt.Sprintf("%s (%s)", queryTemplate, paramsToValueString(generators))
+		queryBuilder.WriteString(queryTemplate + " " + paramsToValueString(generators))
+		for idx := 2; idx <= numOfQueries; idx++ {
+			queryBuilder.WriteString(",\n" + paramsToValueString(generators))
 
-			if _, err := tx.Exec(queryBuffer); err != nil {
-				return err
-			}
+			if idx%bufferSize == 0 || idx == numOfQueries {
+				if _, err := m.db.Exec(queryBuilder.String()); err != nil {
+					log.Printf("Writing batch")
+					panic(err)
+				}
 
-			if table.ExportQueries {
-				queryExporting += queryBuffer + ";\n"
+				queryBuilder.Reset()
+				queryBuilder.WriteString(queryTemplate + " " + paramsToValueString(generators))
 			}
 		}
 
 		fmt.Println("Transaction generated, applying")
 
-		if err := tx.Commit(); err != nil {
-			return err
-		}
+		//if !table.Dummy {
+		//	if _, err := m.db.Exec(queryBuilder.String()); err != nil {
+		//		panic(err)
+		//	}
+		//}
 
 		if table.ExportQueries {
-			if err := ioutil.WriteFile(table.ExportPath, []byte(queryExporting), 0644); err != nil {
+			if err := ioutil.WriteFile(table.ExportPath, []byte(queryBuilder.String()), 0644); err != nil {
 				panic(err)
 			}
 		}
@@ -217,7 +219,7 @@ func paramsToValueString(tableParams []tag.Generator) string {
 		rowValues = append(rowValues, "'"+tableParams[idx].Do()+"'")
 	}
 
-	return strings.Join(rowValues, ",")
+	return "(" + strings.Join(rowValues, ",") + ")"
 }
 
 func resolveForeignKey(foreignTag string) (*foreignKey, error) {
