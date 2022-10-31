@@ -6,6 +6,7 @@ type Table struct {
 	Data           map[string]string `mapstructure:"data"`
 	ExportQueries  bool              `mapstructure:"export_queries"`
 	ExportPath     string            `mapstructure:"export_path"`
+	Dummy          bool              `mapstructure:"dummy"`
 }
 
 type Config struct {
