@@ -1,5 +1,6 @@
 {
   "base_count": 1,
+  "default_batch_size": 1000,
   "db_type": "mysql",
   "db_name": "monger",
   "db_host": "kubernetes.docker.internal",
@@ -10,6 +11,7 @@
     {
       "name": "developers",
       "base_multiplier": 100000,
+      "batch_size": 0,
       "export_queries": true,
       "export_path": "exports.sql",
       "dummy": false,
