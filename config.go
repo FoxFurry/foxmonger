@@ -11,14 +11,10 @@ type Table struct {
 }
 
 type Config struct {
-	BaseCount        int     `mapstructure:"base_count"`
-	Prevalidate      bool    `mapstructure:"pre_validate"`
-	DefaultBatchSize int     `mapstructure:"default_batch_size"`
-	DBType           string  `mapstructure:"db_type"`
-	DBName           string  `mapstructure:"db_name"`
-	DBHost           string  `mapstructure:"db_host"`
-	DBUser           string  `mapstructure:"db_user"`
-	DBPass           string  `mapstructure:"db_pass"`
-	DBPort           string  `mapstructure:"db_port"`
-	Tables           []Table `mapstructure:"tables"`
+	DBType string `env:"DB_TYPE"`
+	DBName string `env:"DB_NAME"`
+	DBHost string `env:"DB_HOST"`
+	DBUser string `env:"DB_USER"`
+	DBPass string `env:"DB_PASS"`
+	DBPort string `env:"DB_PORT"`
 }

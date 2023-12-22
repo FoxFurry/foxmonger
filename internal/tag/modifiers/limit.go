@@ -1,9 +1,7 @@
-package tag
+package modifiers
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
+	"github.com/FoxFurry/foxmonger/internal/tag"
 )
 
 type LimitModifier struct {
@@ -18,22 +16,22 @@ func (mod *LimitModifier) Modify(val string) string {
 }
 
 func (mod *LimitModifier) Initialize(input string) error {
-	limitElements := strings.Split(input, modifierSplitter)
-
-	if len(limitElements) != 2 {
-		return fmt.Errorf("tag does not contain lmit value: %s", input)
-	}
-
-	limitValue, err := strconv.Atoi(limitElements[1])
-	if err != nil {
-		return fmt.Errorf("could not convert limit value to integer: %s", input)
-	}
-
-	mod.limit = limitValue
+	//limitElements := strings.Split(input, tag.modifierSplitter)
+	//
+	//if len(limitElements) != 2 {
+	//	return fmt.Errorf("tag does not contain lmit value: %s", input)
+	//}
+	//
+	//limitValue, err := strconv.Atoi(limitElements[1])
+	//if err != nil {
+	//	return fmt.Errorf("could not convert limit value to integer: %s", input)
+	//}
+	//
+	//mod.limit = limitValue
 	return nil
 }
 
-func NewLimitModifier(tag string) (Modifier, error) {
+func NewLimitModifier(tag string) (tag.Modifier, error) {
 	lim := &LimitModifier{}
 	if err := lim.Initialize(tag); err != nil {
 		return nil, err

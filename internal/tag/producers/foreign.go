@@ -1,21 +1,28 @@
-package tag
+package producers
 
 import (
 	"math/rand"
+	"strings"
+
+	"github.com/FoxFurry/foxmonger/internal/tag"
 )
 
 type ForeignProducer struct {
-	foreignKeys []string
+	foreignValuePool []string
 }
 
 func (gen *ForeignProducer) Produce() string {
-	return gen.foreignKeys[rand.Intn(len(gen.foreignKeys))]
+	return gen.foreignValuePool[rand.Intn(len(gen.foreignValuePool))]
 }
 
-func (gen *ForeignProducer) Initialize(string) error { return nil }
+func (gen *ForeignProducer) Initialize(foreigns string) error {
+	gen.foreignValuePool = strings.Split(foreigns, ",")
 
-func NewForeignProducer(keys []string) Producer {
+	return nil
+}
+
+func NewForeignProducer(foreigns []string) tag.Producer {
 	return &ForeignProducer{
-		foreignKeys: keys,
+		foreignValuePool: foreigns,
 	}
 }

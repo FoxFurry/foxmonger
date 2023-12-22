@@ -1,6 +1,7 @@
-package tag
+package producers
 
 import (
+	"github.com/FoxFurry/foxmonger/internal/tag"
 	"github.com/jaswdr/faker"
 )
 
@@ -14,7 +15,7 @@ func (gen *EmailProducer) Produce() string {
 
 func (gen *EmailProducer) Initialize(string) error { return nil }
 
-func NewEmailProducer(f *faker.Faker) Producer {
+func NewEmailProducer(f *faker.Faker) tag.Producer {
 	return &EmailProducer{
 		fakerInstance: f,
 	}

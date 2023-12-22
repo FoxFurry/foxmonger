@@ -1,6 +1,7 @@
-package tag
+package producers
 
 import (
+	"github.com/FoxFurry/foxmonger/internal/tag"
 	"github.com/jaswdr/faker"
 )
 
@@ -15,7 +16,7 @@ func (gen *FullNameProducer) Produce() string {
 // Initialize implements Producer interface
 func (gen *FullNameProducer) Initialize(string) error { return nil }
 
-func NewFullNameProducer(f *faker.Faker) Producer {
+func NewFullNameProducer(f *faker.Faker) tag.Producer {
 	return &FullNameProducer{
 		fakerInstance: f,
 	}

@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	modifierSplitter  = ":"
-	enumValueSplitter = ","
+	ModifierSplitter  = ":"
+	EnumValueSplitter = ","
 )
 
 type Tag interface {
